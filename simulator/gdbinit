@@ -1,0 +1,3 @@
+directory ../arduino/test
+directory ../arduino/ros_lib
+target remote :1234

@@ -1,0 +1,17 @@
+*bak
+*.sw[op]
+#*#
+*~
+
+/catkin_ws/install
+/catkin_ws/build
+/catkin_ws/devel
+/catkin_ws/src/CMakeLists.txt
+
+/arduino/ros_lib
+/arduino/*/build-*/
+/arduino/test/overrides.mk
+
+/simulator/*.o
+/simulator/arduinosim
+/simulator/simavr-out/

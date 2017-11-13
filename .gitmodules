@@ -1,0 +1,10 @@
+[submodule "catkin_ws/src/rosserial"]
+	path = catkin_ws/src/rosserial
+	url = https://github.com/Pikrass/rosserial.git
+	branch = protocol-fd
+[submodule "arduino/makefiles"]
+	path = arduino/makefiles
+	url = https://github.com/sudar/Arduino-Makefile.git
+[submodule "simulator/simavr"]
+	path = simulator/simavr
+	url = https://github.com/buserror/simavr.git
