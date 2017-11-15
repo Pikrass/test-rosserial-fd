@@ -15,7 +15,7 @@ Test::Test()
 
 void Test::spinOnce()
 {
-	if (current_test > -1)
+	if (current_test > -1 && delay-- <= 0)
 		publish_test(current_test);
 
 	ros::spinOnce();
@@ -132,6 +132,7 @@ void Test::run_test(unsigned int test)
 	start_msg.data = test;
 	pub_start.publish(start_msg);
 
+	delay = 3;
 	current_test = test;
 }
 

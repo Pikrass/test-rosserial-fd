@@ -26,6 +26,7 @@ private:
 	ros::Subscriber sub;
 
 	int current_test;
+	int delay;
 
 	int next_test(int cur_test);
 
