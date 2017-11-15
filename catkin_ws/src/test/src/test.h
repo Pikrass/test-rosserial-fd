@@ -17,6 +17,7 @@ class Test
 public:
 	Test();
 	void spinOnce(void);
+	bool running(void);
 
 private:
 	ros::NodeHandle nh;
@@ -25,6 +26,7 @@ private:
 	ros::Subscriber sub_ready;
 	ros::Subscriber sub;
 
+	bool exit;
 	int current_test;
 	int delay;
 

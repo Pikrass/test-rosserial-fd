@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 Test::Test()
-	: nh(), current_test(-1)
+	: nh(), exit(false), current_test(-1)
 {
 	pub_start = nh.advertise<std_msgs::UInt8>("start_test", 3);
 	pub = nh.advertise<test::Test>("world_to_arduino", 3);
@@ -180,6 +180,12 @@ void Test::publish_test(unsigned int test)
 void Test::stop()
 {
 	current_test = -1;
+	exit = true;
+}
+
+bool Test::running()
+{
+	return !exit;
 }
 
 int main(int argc, char **argv)
@@ -189,7 +195,7 @@ int main(int argc, char **argv)
 	Test test;
 
 	ros::Rate r(100);
-	while (ros::ok()) {
+	while (ros::ok() && test.running()) {
 		test.spinOnce();
 		r.sleep();
 	}
