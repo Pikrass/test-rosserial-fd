@@ -5,15 +5,19 @@
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Bool.h>
 #include <test/Test.h>
+#include <test/Test2.h>
+#include <test/Test2_res.h>
 
 #define TYPE_MASK   (7<<5)
 #define TYPE_CODEC  (0<<5)
-#define TYPE_BURST  (1<<5)
+#define TYPE_CODEC2 (1<<5)
+#define TYPE_BURST  (2<<5)
 
 #define TEST_NUM_PRINT(t)    (((t) & ~TYPE_MASK) + 1)
 #define TEST_SERIES_PRINT(t) ((((t) & TYPE_MASK) >> 5) + 1)
 
 #define CODEC_TEST_COUNT 7
+#define CODEC2_TEST_COUNT 3
 
 class Test
 {
@@ -26,8 +30,10 @@ private:
 	ros::NodeHandle nh;
 	ros::Publisher pub_start;
 	ros::Publisher pub;
+	ros::Publisher pub2;
 	ros::Subscriber sub_ready;
 	ros::Subscriber sub;
+	ros::Subscriber sub2;
 
 	bool exit;
 	int current_test;
@@ -36,12 +42,14 @@ private:
 	int next_test(int cur_test);
 
 	void callback(const test::Test &msg);
+	void callback2(const test::Test2_res &msg);
 	void on_arduino_ready(const std_msgs::Bool &msg);
 
 	void start_test(unsigned int test);
 	void announce_test(unsigned int test);
 	void publish_test(unsigned int test);
 	void publish_codec_test(unsigned int test);
+	void publish_codec2_test(unsigned int test);
 	void publish_burst_test(unsigned int test);
 
 	int check_codec_test(const test::Test &msg);
@@ -67,6 +75,12 @@ private:
 		codec_test_data + 32,
 		codec_test_data + 36,
 		codec_test_data + 40
+	};
+
+	const uint8_t codec2_tests[CODEC2_TEST_COUNT][3] = {
+		{ 0xff, 0xff, 0xff },
+		{ 0xff, 0xff, 0x00 },
+		{ 0xff, 0xff, 0x01 },
 	};
 };
 

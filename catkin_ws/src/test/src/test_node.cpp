@@ -7,8 +7,10 @@ Test::Test()
 {
 	pub_start = nh.advertise<std_msgs::UInt8>("start_test", 3);
 	pub = nh.advertise<test::Test>("world_to_arduino", 3);
+	pub2 = nh.advertise<test::Test2>("world_to_arduino2", 3);
 	sub_ready = nh.subscribe("arduino_ready", 3, &Test::on_arduino_ready, this);
 	sub = nh.subscribe("arduino_to_world", 3, &Test::callback, this);
+	sub2 = nh.subscribe("arduino_to_world2", 3, &Test::callback2, this);
 
 	printf("Initialized test_node\n");
 }
@@ -33,6 +35,11 @@ int Test::next_test(int cur_test)
 	switch (type) {
 	case TYPE_CODEC:
 		if (num < CODEC_TEST_COUNT - 1)
+			return type | (num + 1);
+		else
+			return TYPE_CODEC2;
+	case TYPE_CODEC2:
+		if (num < CODEC2_TEST_COUNT - 1)
 			return type | (num + 1);
 		else
 			return TYPE_BURST;
@@ -124,6 +131,29 @@ void Test::callback(const test::Test &msg)
 		stop();
 }
 
+void Test::callback2(const test::Test2_res &msg)
+{
+	if (msg.test != current_test)
+		return;
+
+	const uint8_t *data = codec2_tests[current_test & ~TYPE_MASK];
+	if (msg.data1 == data[0]
+	    && msg.data2 == data[1]
+	    && msg.data3 == data[2]) {
+		printf(" OK\n");
+	} else {
+		printf(" FAIL\n");
+		printf("Received: %02x %02x %02x\n",
+		       msg.data1, msg.data2, msg.data3);
+	}
+
+	int next = next_test(current_test);
+	if (next > -1)
+		start_test(next);
+	else
+		stop();
+}
+
 void Test::on_arduino_ready(const std_msgs::Bool &msg)
 {
 	if (msg.data) {
@@ -165,6 +195,18 @@ void Test::publish_codec_test(unsigned int test)
 	pub.publish(msg);
 }
 
+void Test::publish_codec2_test(unsigned int test)
+{
+	test::Test2 msg;
+	const uint8_t *data = codec2_tests[test];
+
+	msg.data1 = data[0];
+	msg.data2 = data[1];
+	msg.data3 = data[2];
+
+	pub2.publish(msg);
+}
+
 void Test::publish_burst_test(unsigned int test)
 {
 	test::Test msg;
@@ -185,6 +227,9 @@ void Test::publish_test(unsigned int test)
 	switch (test & TYPE_MASK) {
 	case TYPE_CODEC:
 		publish_codec_test(test & ~TYPE_MASK);
+		break;
+	case TYPE_CODEC2:
+		publish_codec2_test(test & ~TYPE_MASK);
 		break;
 	case TYPE_BURST:
 		publish_burst_test(test & ~TYPE_MASK);

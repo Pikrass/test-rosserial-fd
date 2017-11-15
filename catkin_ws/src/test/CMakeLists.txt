@@ -46,6 +46,8 @@ find_package(catkin REQUIRED COMPONENTS roscpp message_generation std_msgs)
 add_message_files(
   FILES
   Test.msg
+  Test2.msg
+  Test2_res.msg
 )
 
 ## Generate services in the 'srv' folder
