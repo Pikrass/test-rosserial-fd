@@ -28,14 +28,15 @@ private:
 
 	bool exit;
 	int current_test;
-	int delay;
+	int delay_next_test, delay_data;
 
 	int next_test(int cur_test);
 
 	void callback(const test::Test &msg);
 	void on_arduino_ready(const std_msgs::Bool &msg);
 
-	void run_test(unsigned int test);
+	void start_test(unsigned int test);
+	void announce_test(unsigned int test);
 	void publish_test(unsigned int test);
 	void publish_codec_test(unsigned int test);
 	void publish_burst_test(unsigned int test);

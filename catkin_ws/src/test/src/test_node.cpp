@@ -15,8 +15,12 @@ Test::Test()
 
 void Test::spinOnce()
 {
-	if (current_test > -1 && delay-- <= 0)
-		publish_test(current_test);
+	if (current_test > -1) {
+		if (delay_next_test-- == 0)
+			announce_test(current_test);
+		else if (delay_next_test < 0 && delay_data-- <= 0)
+			publish_test(current_test);
+	}
 
 	ros::spinOnce();
 }
@@ -100,16 +104,22 @@ void Test::callback(const test::Test &msg)
 		break;
 	}
 
-	if (succeeded == 1)
+	if (succeeded == 1) {
 		printf(" OK\n");
-	else if (succeeded == 0)
+	} else if (succeeded == 0) {
 		printf(" FAIL\n");
-	else
+		printf("Received:");
+		int len = msg.data.size();
+		for (int i = 0 ; i < len ; ++i)
+			printf(" %02x", msg.data[i]);
+		printf("\n");
+	} else {
 		return;
+	}
 
 	int next = next_test(current_test);
 	if (next > -1)
-		run_test(next);
+		start_test(next);
 	else
 		stop();
 }
@@ -118,22 +128,26 @@ void Test::on_arduino_ready(const std_msgs::Bool &msg)
 {
 	if (msg.data) {
 		printf("Arduino ready, starting tests\n");
-		run_test(0);
+		start_test(0);
 	} else {
 		stop();
 	}
 }
 
-void Test::run_test(unsigned int test)
+void Test::start_test(unsigned int test)
 {
 	printf("Test %d...", test + 1);
 
-	std_msgs::UInt8 start_msg;
-	start_msg.data = test;
-	pub_start.publish(start_msg);
-
-	delay = 3;
+	delay_next_test = 3;
+	delay_data = 3;
 	current_test = test;
+}
+
+void Test::announce_test(unsigned int test)
+{
+	std_msgs::UInt8 start_msg;
+	start_msg.data = current_test;
+	pub_start.publish(start_msg);
 }
 
 void Test::publish_codec_test(unsigned int test)
@@ -194,7 +208,7 @@ int main(int argc, char **argv)
 
 	Test test;
 
-	ros::Rate r(100);
+	ros::Rate r(10);
 	while (ros::ok() && test.running()) {
 		test.spinOnce();
 		r.sleep();
