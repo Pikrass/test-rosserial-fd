@@ -21,14 +21,47 @@ void Test::spinOnce()
 	ros::spinOnce();
 }
 
-void Test::callback(const test::Test &msg)
+int Test::next_test(int cur_test)
 {
-	if (msg.data[0] != current_test)
-		return;
+	int type = cur_test & TYPE_MASK;
+	int num = cur_test & ~TYPE_MASK;
 
-	bool succeeded = true;
+	switch (type) {
+	case TYPE_CODEC:
+		if (num < CODEC_TEST_COUNT - 1)
+			return type | (num + 1);
+		else
+			return TYPE_BURST;
+	case TYPE_BURST:
+		return -1;
+	default:
+		return -1;
+	}
+}
+
+int Test::check_codec_test(const test::Test &msg)
+{
+	int succeeded = 1;
 
 	const uint8_t *test_data = codec_tests[current_test];
+	unsigned int len = *test_data++;
+
+	for (int i = 1 ; i < len+1 ; ++i) {
+		if (msg.data[i] != *test_data++) {
+			succeeded = 0;
+			break;
+		}
+	}
+
+	return succeeded;
+}
+
+int Test::check_burst_test(const test::Test &msg)
+{
+	static bool first = true;
+	bool succeeded = true;
+
+	const uint8_t *test_data = codec_tests[0];
 	unsigned int len = *test_data++;
 
 	for (int i = 1 ; i < len+1 ; ++i) {
@@ -38,13 +71,45 @@ void Test::callback(const test::Test &msg)
 		}
 	}
 
-	if (succeeded)
-		printf(" OK\n");
-	else
-		printf(" FAIL\n");
+	if (!succeeded) {
+		return 0;
+	} else {
+		if (first) {
+			first = false;
+			return -1;
+		} else {
+			first = true;
+			return 1;
+		}
+	}
+}
 
-	if (current_test < TEST_COUNT - 1)
-		run_test(current_test + 1);
+void Test::callback(const test::Test &msg)
+{
+	if (msg.data[0] != current_test)
+		return;
+
+	int succeeded;
+
+	switch (current_test & TYPE_MASK) {
+	case TYPE_CODEC:
+		succeeded = check_codec_test(msg);
+		break;
+	case TYPE_BURST:
+		succeeded = check_burst_test(msg);
+		break;
+	}
+
+	if (succeeded == 1)
+		printf(" OK\n");
+	else if (succeeded == 0)
+		printf(" FAIL\n");
+	else
+		return;
+
+	int next = next_test(current_test);
+	if (next > -1)
+		run_test(next);
 	else
 		stop();
 }
@@ -70,7 +135,7 @@ void Test::run_test(unsigned int test)
 	current_test = test;
 }
 
-void Test::publish_test(unsigned int test)
+void Test::publish_codec_test(unsigned int test)
 {
 	test::Test msg;
 	const uint8_t *test_data = codec_tests[test];
@@ -82,6 +147,33 @@ void Test::publish_test(unsigned int test)
 		msg.data.push_back(*test_data++);
 
 	pub.publish(msg);
+}
+
+void Test::publish_burst_test(unsigned int test)
+{
+	test::Test msg;
+	const uint8_t *test_data = codec_tests[0];
+	unsigned int len = *test_data++;
+
+	msg.data.reserve(len);
+
+	for (int i = 0 ; i < len ; ++i)
+		msg.data.push_back(*test_data++);
+
+	pub.publish(msg);
+	pub.publish(msg);
+}
+
+void Test::publish_test(unsigned int test)
+{
+	switch (test & TYPE_MASK) {
+	case TYPE_CODEC:
+		publish_codec_test(test & ~TYPE_MASK);
+		break;
+	case TYPE_BURST:
+		publish_burst_test(test & ~TYPE_MASK);
+		break;
+	}
 }
 
 void Test::stop()

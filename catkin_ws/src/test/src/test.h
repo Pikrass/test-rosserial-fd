@@ -6,7 +6,11 @@
 #include <std_msgs/Bool.h>
 #include <test/Test.h>
 
-#define TEST_COUNT 7
+#define TYPE_MASK   (7<<5)
+#define TYPE_CODEC  (0<<5)
+#define TYPE_BURST  (1<<5)
+
+#define CODEC_TEST_COUNT 7
 
 class Test
 {
@@ -23,10 +27,19 @@ private:
 
 	int current_test;
 
+	int next_test(int cur_test);
+
 	void callback(const test::Test &msg);
 	void on_arduino_ready(const std_msgs::Bool &msg);
+
 	void run_test(unsigned int test);
 	void publish_test(unsigned int test);
+	void publish_codec_test(unsigned int test);
+	void publish_burst_test(unsigned int test);
+
+	int check_codec_test(const test::Test &msg);
+	int check_burst_test(const test::Test &msg);
+
 	void stop(void);
 
 	const uint8_t codec_test_data[44] = {
@@ -39,7 +52,7 @@ private:
 		 3, 0xff, 0xff, 0x01,
 	};
 
-	const uint8_t *codec_tests[TEST_COUNT] = {
+	const uint8_t *codec_tests[CODEC_TEST_COUNT] = {
 		codec_test_data,
 		codec_test_data + 7,
 		codec_test_data + 14,
