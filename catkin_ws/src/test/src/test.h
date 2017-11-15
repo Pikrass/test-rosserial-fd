@@ -10,6 +10,9 @@
 #define TYPE_CODEC  (0<<5)
 #define TYPE_BURST  (1<<5)
 
+#define TEST_NUM_PRINT(t)    (((t) & ~TYPE_MASK) + 1)
+#define TEST_SERIES_PRINT(t) ((((t) & TYPE_MASK) >> 5) + 1)
+
 #define CODEC_TEST_COUNT 7
 
 class Test

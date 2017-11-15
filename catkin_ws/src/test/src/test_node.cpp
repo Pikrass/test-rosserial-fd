@@ -136,7 +136,8 @@ void Test::on_arduino_ready(const std_msgs::Bool &msg)
 
 void Test::start_test(unsigned int test)
 {
-	printf("Test %d...", test + 1);
+	printf("Series %d test %d...",
+	       TEST_SERIES_PRINT(test), TEST_NUM_PRINT(test));
 
 	delay_next_test = 3;
 	delay_data = 3;
