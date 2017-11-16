@@ -20,7 +20,7 @@ void Test::spinOnce()
 	if (current_test > -1) {
 		if (delay_next_test-- == 0)
 			announce_test(current_test);
-		else if (delay_next_test < 0 && delay_data-- <= 0)
+		else if (delay_next_test < 0 && delay_data-- == 0)
 			publish_test(current_test);
 	}
 
