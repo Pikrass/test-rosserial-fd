@@ -5,6 +5,12 @@ First checkout the submodules:
 $ git submodule update --init
 ```
 
+rosserial needs a few tweaks to work correctly with the simulator and some
+tests. Apply the provided patch:
+```bash
+$ (cd catkin_ws/src/rosserial/ && patch -p1 < ../../../rosserial.patch)
+```
+
 Then run `make` in this directory. You may have to install some packets first
 (especially for simavr).
 
