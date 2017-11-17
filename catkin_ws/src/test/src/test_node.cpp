@@ -8,6 +8,7 @@ Test::Test()
 	pub_start = nh.advertise<std_msgs::UInt8>("start_test", 3);
 	pub = nh.advertise<test::Test>("world_to_arduino", 3);
 	pub2 = nh.advertise<test::Test2>("world_to_arduino2", 3);
+	pub_inject = nh.advertise<test::Inject>("inject", 3);
 	sub_ready = nh.subscribe("arduino_ready", 3, &Test::on_arduino_ready, this);
 	sub = nh.subscribe("arduino_to_world", 3, &Test::callback, this);
 	sub2 = nh.subscribe("arduino_to_world2", 3, &Test::callback2, this);
@@ -44,7 +45,12 @@ int Test::next_test(int cur_test)
 		else
 			return TYPE_BURST;
 	case TYPE_BURST:
-		return -1;
+		return TYPE_TRUNC;
+	case TYPE_TRUNC:
+		if (num < TRUNC_TEST_COUNT - 1)
+			return type | (num + 1);
+		else
+			return -1;
 	default:
 		return -1;
 	}
@@ -95,6 +101,23 @@ int Test::check_burst_test(const test::Test &msg)
 	}
 }
 
+int Test::check_trunc_test(const test::Test &msg)
+{
+	int succeeded = 1;
+
+	const uint8_t test_data[] = {0x42, 0xff, 0xff, 0x01};
+	unsigned int len = 4;
+
+	for (int i = 0 ; i < len ; ++i) {
+		if (msg.data[i+1] != test_data[i]) {
+			succeeded = 0;
+			break;
+		}
+	}
+
+	return succeeded;
+}
+
 void Test::callback(const test::Test &msg)
 {
 	if (msg.data[0] != current_test)
@@ -108,6 +131,9 @@ void Test::callback(const test::Test &msg)
 		break;
 	case TYPE_BURST:
 		succeeded = check_burst_test(msg);
+		break;
+	case TYPE_TRUNC:
+		succeeded = check_trunc_test(msg);
 		break;
 	}
 
@@ -222,6 +248,42 @@ void Test::publish_burst_test(unsigned int test)
 	pub.publish(msg);
 }
 
+void Test::publish_trunc_test(unsigned int test)
+{
+	const char* const packet_read =
+		"\xff\xff\xff\xfd"
+		"\x08\x00\xf7"
+		"\x00\x65\x00\x00"
+		"\x04\x00\x00\x00"
+		"\x42\xff\xff\x01"
+		"\x00\x55";
+	const char* const packet_write =
+		"\xff\xff\xff\xfd"
+		"\x08\x00\xf7"
+		"\x00\x7e\x00\x00"
+		"\x04\x00\x00\x00"
+		"\x42\xff\xff\x01"
+		"\x00\x3c";
+	const unsigned int packet_len = 21;
+
+	test::Inject msg;
+	const uint8_t *test_data = trunc_tests[test % TRUNC_TEST_COUNT_ONE_WAY];
+	unsigned int len = *test_data++;
+
+	const char* p = test >= TRUNC_TEST_COUNT_ONE_WAY
+		? packet_write : packet_read;
+
+	msg.data.reserve(len + packet_len);
+
+	for (int i = 0 ; i < len ; ++i)
+		msg.data.push_back(*test_data++);
+	for (int i = 0 ; i < packet_len ; ++i)
+		msg.data.push_back(*p++);
+
+	msg.write_side = (test >= TRUNC_TEST_COUNT_ONE_WAY);
+	pub_inject.publish(msg);
+}
+
 void Test::publish_test(unsigned int test)
 {
 	switch (test & TYPE_MASK) {
@@ -233,6 +295,9 @@ void Test::publish_test(unsigned int test)
 		break;
 	case TYPE_BURST:
 		publish_burst_test(test & ~TYPE_MASK);
+		break;
+	case TYPE_TRUNC:
+		publish_trunc_test(test & ~TYPE_MASK);
 		break;
 	}
 }

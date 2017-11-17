@@ -48,6 +48,7 @@ add_message_files(
   Test.msg
   Test2.msg
   Test2_res.msg
+  Inject.msg
 )
 
 ## Generate services in the 'srv' folder
